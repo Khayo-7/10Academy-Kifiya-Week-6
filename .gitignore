@@ -1,0 +1,8 @@
+__pycache__/
+env/
+**/*.csv
+**/*.xlsx
+**/*.log
+**/*.pkl
+**/*.h5
+**/*.db
