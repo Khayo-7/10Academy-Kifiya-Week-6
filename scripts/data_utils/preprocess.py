@@ -5,7 +5,8 @@ import pandas as pd
 # Setup logger for data_loader
 sys.path.append(os.path.join(os.path.abspath(__file__), '..', '..', '..'))
 from scripts.utils.logger import setup_logger
-from scripts.data_utils.loaders import save_csv, save_json
+from scripts.data_utils.loaders import save_data
+from scripts.data_utils.cleaner import *
 
 logger = setup_logger("preprocess")
 
@@ -13,31 +14,39 @@ logger = setup_logger("preprocess")
 # Main Data Preprocessing Function
 # ==========================================
 
-def clean_data(data: pd.DataFrame, column: str) -> pd.DataFrame:
-    
-    pass
-    
+
+def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns) -> pd.DataFrame:
+    """
+    Main cleaning pipeline function.
+    """
+    data = data.copy()
+
+    # Cleaning pipeline
+    data = drop_irrelevant_columns(data, irrelevant_columns)
+    data = handle_missing_values(data)
+    # data = drop_missing(data, columns)
+    data = remove_duplicates(data)
+    data = convert_data_types(data)
+    data = standardize_categorical_columns(data, categorical_columns)
+
+    logger.info("Data cleaning pipeline executed successfully.")
     return data
 
-def preprocess_data(data: pd.DataFrame, column: str, filename: str, output_dir: str, explode: bool = False, save_in_csv: bool = True, save_in_json: bool = False) -> pd.DataFrame:
+
+def preprocess_data(data: pd.DataFrame, irrelevant_columns: str, categorical_columns, numerical_columns, filename: str, output_dir: str) -> pd.DataFrame:
     """
     Loads, preprocesses, and saves cleaned data.
     """
-    logger.info("Preprocessing text data...")
-    cleaned_data = clean_data(data, column)
+    logger.info("Cleaning...")
 
-    logger.info("Removing empty...")
-    preprocessed_data = cleaned_data.dropna(subset=[column])
+    cleaned_data = clean_data(data, irrelevant_columns=irrelevant_columns, categorical_columns=categorical_columns)
 
-    preprocessed_data = preprocessed_data.reset_index(drop=True)
+    preprocessed_data = cleaned_data.reset_index(drop=True)
 
     logger.info("Saving preprocessed data...")
     output_file = os.path.join(output_dir, filename)
-    if save_in_csv:
-        save_csv(preprocessed_data, output_file + ".csv")
-    if save_in_json:
-        save_json(preprocessed_data, output_file + ".json")
-
+    save_data(data, output_file + ".csv")
+    save_data(data, output_file + ".json")
     logger.info(f"Preprocessed data saved to {output_dir}")
 
     return preprocessed_data

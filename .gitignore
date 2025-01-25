@@ -1,6 +1,7 @@
 __pycache__/
 env/
 **/*.csv
+**/*.json
 **/*.xlsx
 **/*.log
 **/*.pkl
