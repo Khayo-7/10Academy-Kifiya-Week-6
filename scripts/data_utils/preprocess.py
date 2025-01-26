@@ -14,8 +14,7 @@ logger = setup_logger("preprocess")
 # Main Data Preprocessing Function
 # ==========================================
 
-
-def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns) -> pd.DataFrame:
+def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns, missing_value_strategies, date_column, dtype_conversions) -> pd.DataFrame:
     """
     Main cleaning pipeline function.
     """
@@ -23,23 +22,23 @@ def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns) -> p
 
     # Cleaning pipeline
     data = drop_irrelevant_columns(data, irrelevant_columns)
-    data = handle_missing_values(data)
+    data = handle_missing_values(data, missing_value_strategies)
     # data = drop_missing(data, columns)
     data = remove_duplicates(data)
-    data = convert_data_types(data)
+    data = convert_date(data, date_column)
+    data = convert_data_types(data, dtype_conversions)
     data = standardize_categorical_columns(data, categorical_columns)
 
     logger.info("Data cleaning pipeline executed successfully.")
     return data
 
-
-def preprocess_data(data: pd.DataFrame, irrelevant_columns: str, categorical_columns, numerical_columns, filename: str, output_dir: str) -> pd.DataFrame:
+def preprocess_data(data: pd.DataFrame, irrelevant_columns: str, categorical_columns, numerical_columns, missing_value_strategies, date_column, dtype_conversions, filename: str, output_dir: str) -> pd.DataFrame:
     """
     Loads, preprocesses, and saves cleaned data.
     """
     logger.info("Cleaning...")
 
-    cleaned_data = clean_data(data, irrelevant_columns=irrelevant_columns, categorical_columns=categorical_columns)
+    cleaned_data = clean_data(data, irrelevant_columns, categorical_columns, missing_value_strategies, date_column, dtype_conversions)
 
     preprocessed_data = cleaned_data.reset_index(drop=True)
 
