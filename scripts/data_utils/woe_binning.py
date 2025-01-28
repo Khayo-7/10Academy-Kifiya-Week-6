@@ -30,19 +30,6 @@ def woe_encode(data: pd.DataFrame, target: str, categorical_columns: list) -> pd
     logger.info("WoE encoding applied.")
     return data
 
-def save_to_file(data: pd.DataFrame, output_path: str) -> None:
-    """
-    Saves the DataFrame to a file.
-
-    Args:
-        data (pd.DataFrame): The DataFrame to save.
-        output_path (str): File path to save the DataFrame.
-    """
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    data.to_csv(output_path, index=False)
-    logger.info(f"Data saved to {output_path}")
-
-
 def calculate_woe_iv(data: pd.DataFrame, feature: str, target: str, output_path: str = None) -> pd.DataFrame:
     """
     Calculates WoE and IV for a given feature (categorical or binned numerical).
@@ -162,8 +149,7 @@ def woe_encode_categorical(data: pd.DataFrame, categorical_features: list, targe
 
     return data
 
-
-def calculate_default_rate(data: pd.DataFrame, target: str, output_path: str = None) -> float:
+def calculate_default_rate(data: pd.DataFrame, target: str) -> float:
     """
     Calculates the default rate for a binary target column and optionally saves it.
 
@@ -175,47 +161,18 @@ def calculate_default_rate(data: pd.DataFrame, target: str, output_path: str = N
     Returns:
         float: Default rate.
     """
-    default_rate = data[target].mean()
-    if output_path:
-        with open(output_path, 'w') as f:
-            f.write(f'Default Rate: {default_rate}\n')
-        logger.info(f"Default rate saved to {output_path}")
-    
+    default_rate = data[target].mean()    
     logger.info(f"Default rate for target ({target}): {default_rate}")
     return default_rate
 
-# def iv_woe(data, target, bins=10, show_woe=False):
-    
-#     #Empty Dataframe
-#     newdata,woedata = pd.DataFrame(), pd.DataFrame()
-    
-#     #Extract Column Names
-#     cols = data.columns
-    
-#     #Run WOE and IV on all the independent variables
-#     for ivars in cols[~cols.isin([target])]:
-#         if (data[ivars].dtype.kind in 'bifc') and (len(np.unique(data[ivars]))>10):
-#             binned_x = pd.qcut(data[ivars], bins,  duplicates='drop')
-#             d0 = pd.DataFrame({'x': binned_x, 'y': data[target]})
-#         else:
-#             d0 = pd.DataFrame({'x': data[ivars], 'y': data[target]})
-#         d0 = d0.astype({"x": str})
-#         d = d0.groupby("x", as_index=False, dropna=False).agg({"y": ["count", "sum"]})
-#         d.columns = ['Cutoff', 'N', 'Events']
-#         d['% of Events'] = np.maximum(d['Events'], 0.5) / d['Events'].sum()
-#         d['Non-Events'] = d['N'] - d['Events']
-#         d['% of Non-Events'] = np.maximum(d['Non-Events'], 0.5) / d['Non-Events'].sum()
-#         d['WoE'] = np.log(d['% of Non-Events']/d['% of Events'])
-#         d['IV'] = d['WoE'] * (d['% of Non-Events']-d['% of Events'])
-#         d.insert(loc=0, column='Variable', value=ivars)
-#         print("Information value of " + ivars + " is " + str(round(d['IV'].sum(),6)))
-#         temp =pd.DataFrame({"Variable" : [ivars], "IV" : [d['IV'].sum()]}, columns = ["Variable", "IV"])
-#         newdata=pd.concat([newdata,temp], axis=0)
-#         woedata=pd.concat([woedata,d], axis=0)
+def save_to_file(data: pd.DataFrame, output_path: str) -> None:
+    """
+    Saves the DataFrame to a file.
 
-#         #Show WOE Table
-#         if show_woe == True:
-#             print(d)
-#     return newdata, woedata
-# iv, woe = iv_woe(data = mydata, target = 'admit', bins=10, show_woe = True)
-# iv, woe
+    Args:
+        data (pd.DataFrame): The DataFrame to save.
+        output_path (str): File path to save the DataFrame.
+    """
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    data.to_csv(output_path, index=False)
+    logger.info(f"Data saved to {output_path}")
