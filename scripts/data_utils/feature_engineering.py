@@ -115,7 +115,7 @@ def encode_categorical_variables(data: pd.DataFrame, one_hot_columns: list, labe
     logger.info("Categorical variables encoded successfully.")    
     return data, encoder_output
 
-def normalize_standardize_numerical_features(data: pd.DataFrame, columns: list, mode: str = 'standard', output_path: str = None) -> pd.DataFrame:
+def normalize_standardize_numerical_features(data: pd.DataFrame, columns: list, mode: str = 'standard', scaler=None, output_path: str = None) -> pd.DataFrame:
     """
     Normalizes or standardizes numerical columns.
 
@@ -130,7 +130,8 @@ def normalize_standardize_numerical_features(data: pd.DataFrame, columns: list, 
     """
     logger.info(f"Scaling numerical features using {mode} method.")
     
-    scaler = StandardScaler() if mode == 'standard' else MinMaxScaler()
+    if scaler is None:
+        scaler = StandardScaler() if mode == 'standard' else MinMaxScaler()
     
     data[columns] = scaler.fit_transform(data[columns])
     logger.info(f"Numerical features scaled using {mode} mode.")
@@ -140,7 +141,7 @@ def normalize_standardize_numerical_features(data: pd.DataFrame, columns: list, 
         data.to_csv(output_path, index=False)
         logger.info(f"Scaled numerical features saved to {output_path}")
     
-    return data
+    return data, scaler
 
 def calculate_rfms(data, customer_column, recency_column, frequency_column, monetary_column, severity_column):
     """Calculate RFMS scores dynamically."""

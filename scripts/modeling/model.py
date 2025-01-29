@@ -52,8 +52,8 @@ class CreditScoringModel:
         self.data[num_features] = self.data[num_features].fillna(self.data[num_features].median())
 
         # Standardize numerical features
-        scaler = StandardScaler()
-        self.data[num_features] = scaler.fit_transform(self.data[num_features])
+        # scaler = StandardScaler()
+        # self.data[num_features] = scaler.fit_transform(self.data[num_features])
         # return 
 
     def split_data(self):

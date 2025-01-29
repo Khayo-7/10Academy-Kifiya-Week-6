@@ -18,6 +18,8 @@ from scripts.data_utils.feature_engineering import calculate_rfms, normalize_sta
 
 logger = setup_logger("rfms_woe_binning")
 
+scaler_path = os.path.join('..', 'resources', 'scalers', 'scaler.pkl')
+
 class WOETransformer(BaseEstimator, TransformerMixin):
     """Custom WoE transformer for binning and encoding."""
 
@@ -139,7 +141,7 @@ def calculate_default_rate(data: pd.DataFrame, target: str) -> float:
     
     return default_rate
 
-def normalize_rfms(rfms: pd.DataFrame, customer_column: str, mode='standard', output_path=None) -> pd.DataFrame:
+def normalize_rfms(rfms: pd.DataFrame, customer_column: str, mode='standard', scaler=None, output_path=None) -> pd.DataFrame:
     """Normalize RFMS values."""
     logger.info("Normalizing RFMS values.")
 
@@ -148,12 +150,14 @@ def normalize_rfms(rfms: pd.DataFrame, customer_column: str, mode='standard', ou
     # Separate numeric and non-numeric columns
     # normalized_numeric = scaler.fit_transform(rfms[numeric_columns])
 
-    normalized_rfms = normalize_standardize_numerical_features(rfms, numeric_columns, mode=mode, output_path=output_path)
+    normalized_rfms, scaler = normalize_standardize_numerical_features(rfms, numeric_columns, mode=mode, scaler=scaler, output_path=output_path)
     
     print(normalized_rfms.columns, numeric_columns)
 
+    save_data(scaler, scaler_path)
+
     logger.info("RFMS normalization completed.")
-    return normalized_rfms
+    return normalized_rfms, scaler
 
 def woe_binning(data, target_column, columns, max_bins=5, output_dir=None):
     """Perform WoE binning dynamically."""
@@ -172,7 +176,7 @@ def woe_binning(data, target_column, columns, max_bins=5, output_dir=None):
     
     return data
 
-def woe_rfms_pipeline(data, customer_column, recency_column, frequency_column, monetary_column, severity_column, target_column, label_column, columns, rfms_features, output_dir=None):
+def woe_rfms_pipeline(data, customer_column, recency_column, frequency_column, monetary_column, severity_column, target_column, label_column, columns, rfms_features, scaler=None, output_dir=None):
     
     """Execute the RFMS and WoE pipeline dynamically."""
 
@@ -181,7 +185,7 @@ def woe_rfms_pipeline(data, customer_column, recency_column, frequency_column, m
 
     rfms_outliers = handle_outliers(rfms, rfms_features)
     plot_box(rfms_outliers, rfms_features)
-    rfms_normalized = normalize_rfms(rfms_outliers, customer_column)
+    rfms_normalized, scaler = normalize_rfms(rfms_outliers, customer_column, scaler=scaler)
     plot_box(rfms_normalized, rfms_features)
     rfms_normalized_outlier = handle_outliers(rfms_normalized, rfms_features)
     plot_box(rfms_normalized_outlier, rfms_features)
@@ -203,6 +207,7 @@ def woe_rfms_pipeline(data, customer_column, recency_column, frequency_column, m
         # Save the final transformed dataset
         os.makedirs(output_dir, exist_ok=True)
         save_data(data_rfms_classified, os.path.join(output_dir, 'data_rfms_classified.csv'))
+        save_data(scaler, os.path.join(output_dir, 'scaler.pkl'))
         logger.info(f"Classified RFMS data saved to {output_dir}")
 
-    return data_rfms_classified, data_woe_encoded
+    return data_rfms_classified, data_woe_encoded, scaler

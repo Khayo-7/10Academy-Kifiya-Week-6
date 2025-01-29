@@ -15,7 +15,7 @@ logger = setup_logger("process")
 # ==========================================
 # Main Data Processing Function
 # ==========================================
-def process_data(data, numerical_columns, date_column, customer_column, recency_column, frequency_column, monetary_column, severity_column, target_column, label_column, columns, rfms_features, output_dir: str = None) -> pd.DataFrame:
+def process_data(data, numerical_features, date_column, customer_column, recency_column, frequency_column, monetary_column, severity_column, target_column, label_column, columns, rfms_features, scaler=None, output_dir: str = None) -> pd.DataFrame:
     """
     Loads, processes, and saves data.
     """
@@ -23,9 +23,9 @@ def process_data(data, numerical_columns, date_column, customer_column, recency_
 
     data_aggregated = create_aggregate_features(data)
     data_temporal = extract_temporal_features(data_aggregated, date_column)
-    data_scaled = normalize_standardize_numerical_features(data_temporal, numerical_columns, mode='standard')
-    data_rfms_classified, _ = woe_rfms_pipeline(data_scaled, customer_column, recency_column, frequency_column, monetary_column, 
-                                                severity_column, target_column, label_column, columns, rfms_features, output_dir)
+    data_scaled = normalize_standardize_numerical_features(data_temporal, numerical_features, mode='standard')
+    data_rfms_classified, _, scaler = woe_rfms_pipeline(data_scaled, customer_column, recency_column, frequency_column, monetary_column, 
+                                                severity_column, target_column, label_column, columns, rfms_features, scaler, output_dir)
     
     data_processed = data_rfms_classified.reset_index(drop=True)
 
@@ -34,6 +34,7 @@ def process_data(data, numerical_columns, date_column, customer_column, recency_
         output_file = os.path.join(output_dir, "data_preprocessed")
         save_data(data_processed, output_file + ".csv")
         save_data(data_processed, output_file + ".json")
+        save_data(scaler, output_file + ".pkl")
         logger.info(f"Processed data saved to {output_dir}")
     
     return data_processed
