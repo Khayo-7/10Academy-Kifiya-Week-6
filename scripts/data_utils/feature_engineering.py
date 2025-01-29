@@ -5,6 +5,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder, StandardScaler, M
 
 # Setup logger for data_loader
 sys.path.append(os.path.join(os.path.abspath(__file__), '..', '..', '..'))
+from scripts.data_utils.cleaner import validate_convert_date_column
 from scripts.utils.logger import setup_logger
 
 logger = setup_logger("feature_engineering")
@@ -31,7 +32,7 @@ def create_aggregate_features(data: pd.DataFrame, output_path: str = None) -> pd
         std_transaction_amount=('Amount', 'std')
     ).reset_index()
 
-    # Handle NaN for std deviation (e.g., single transaction customers)
+    # Handle NaN for std deviation (single/no transaction customers)
     aggregated_data['std_transaction_amount'] = aggregated_data['std_transaction_amount'].fillna(0)
     
     logger.info("Aggregate features created successfully.")
@@ -44,7 +45,6 @@ def create_aggregate_features(data: pd.DataFrame, output_path: str = None) -> pd
     data = data.merge(aggregated_data, on="CustomerId", how="left")
     logger.info("Aggregate features created and merged into the dataframe.")
     return data
-
 
 def extract_temporal_features(data: pd.DataFrame, date_column, output_path: str = None) -> pd.DataFrame:
     """
@@ -115,7 +115,7 @@ def encode_categorical_variables(data: pd.DataFrame, one_hot_columns: list, labe
     logger.info("Categorical variables encoded successfully.")    
     return data, encoder_output
 
-def normalize_or_standardize(data: pd.DataFrame, columns: list, mode: str = 'standard', output_path: str = None) -> pd.DataFrame:
+def normalize_standardize_numerical_features(data: pd.DataFrame, columns: list, mode: str = 'standard', output_path: str = None) -> pd.DataFrame:
     """
     Normalizes or standardizes numerical columns.
 
@@ -141,3 +141,27 @@ def normalize_or_standardize(data: pd.DataFrame, columns: list, mode: str = 'sta
         logger.info(f"Scaled numerical features saved to {output_path}")
     
     return data
+
+def calculate_rfms(data, customer_column, recency_column, frequency_column, monetary_column, severity_column):
+    """Calculate RFMS scores dynamically."""
+
+    logger.info("Calculating RFMS scores with recency.")
+
+    # Group by customer and calculate RFMS scores
+    # reference_datetime = data[recency_column].max() or datetime.now()
+    # reference_datetime = reference_datetime.replace(tzinfo=None) if reference_datetime.tzinfo else reference_datetime
+    reference_date = data[recency_column].max()
+    data = validate_convert_date_column(data, recency_column)
+    data = validate_convert_date_column(data, frequency_column)
+    # data['Recency_Seconds'] = (reference_datetime - data[recency_column]).dt.total_seconds() # Calculate recency in seconds
+
+    rfms_data = data.groupby(customer_column).agg(
+        Recency=(recency_column, lambda x: (reference_date - x.max()).days),
+        # Recency=('Recency_Seconds': 'min'),
+        Frequency=(frequency_column, 'count'),
+        Monetary=(monetary_column, 'sum'),
+        Severity=(severity_column, 'mean')
+    ).reset_index()
+    
+    logger.debug(f"RFMS Metrics calculated with shape: {rfms_data.shape}")
+    return rfms_data

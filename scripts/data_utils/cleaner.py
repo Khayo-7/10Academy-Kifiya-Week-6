@@ -1,9 +1,11 @@
 import re
 import os
 import sys
+import pytz
+import numpy as np
 import pandas as pd
+from typing import List, Dict
 from sklearn.impute import SimpleImputer
-from typing import List, Dict, Optional, Any
 
 # Setup logger for cleaning operations
 sys.path.append(os.path.join(os.path.abspath(__file__), '..', '..', '..'))
@@ -108,13 +110,23 @@ def convert_data_types(data: pd.DataFrame, conversions: Dict[str, str]) -> pd.Da
                 logger.error(f"Failed to convert {col} to {dtype}: {e}")
     return data
 
-def convert_date(data: pd.DataFrame, date_column) -> pd.DataFrame:
+def validate_convert_date_column(data, date_column, timezone="Africa/Addis_Ababa"):
     """
-    Converts date_column to datetime
+    Validate that the specified column exists and is a datetime.
     """
-    if date_column in data.columns:
-        data[date_column] = pd.to_datetime(data[date_column], errors="coerce")
+    if date_column not in data.columns:
+        raise ValueError(f"{date_column} is not a valid column in data.")
+    
+    if not pd.api.types.is_datetime64_any_dtype(data[date_column]):
+        data[date_column] = pd.to_datetime(data[date_column], errors='coerce')
         data = data.dropna(subset=[date_column])  # Drop invalid datetimes
+
+    data[date_column] = pd.to_datetime((
+        data[date_column].dt.tz_convert('UTC').dt.tz_localize(None)
+        if data[date_column].dt.tz is not None
+        else data[date_column]
+    )).dt.tz_localize('UTC').dt.tz_convert(timezone)#.tz_localize(pytz.UTC)
+
     return data
 
 def standardize_categorical_columns(data: pd.DataFrame, categorical_columns: List[str]) -> pd.DataFrame:
@@ -126,4 +138,12 @@ def standardize_categorical_columns(data: pd.DataFrame, categorical_columns: Lis
             data[col] = data[col].str.strip().str.upper()
             
         logger.info(f"Standardized categorical column: {col}")
+    return data
+
+def handle_outliers(data, columns, lower_quantile=0.01, upper_quantile=0.99):
+    for col in columns:
+        data[col] = data[col].clip(
+            lower=data[col].quantile(lower_quantile),
+            upper=data[col].quantile(upper_quantile)
+        )
     return data

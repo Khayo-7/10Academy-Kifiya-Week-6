@@ -116,7 +116,6 @@ def plot_outliers(data: pd.DataFrame, numerical_columns: list, output_dir: str) 
         
         plt.show()
 
-
 def plot_box(data, columns):
     plt.figure(figsize=(8, 6))
     sns.boxplot(data=data[columns])

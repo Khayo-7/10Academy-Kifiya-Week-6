@@ -14,7 +14,7 @@ logger = setup_logger("preprocess")
 # Main Data Preprocessing Function
 # ==========================================
 
-def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns, missing_value_strategies, date_column, dtype_conversions) -> pd.DataFrame:
+def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns, numerical_columns, missing_value_strategies, date_column, dtype_conversions) -> pd.DataFrame:
     """
     Main cleaning pipeline function.
     """
@@ -25,27 +25,28 @@ def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns, miss
     data = handle_missing_values(data, missing_value_strategies)
     # data = drop_missing(data, columns)
     data = remove_duplicates(data)
-    data = convert_date(data, date_column)
+    data = validate_convert_date_column(data, date_column)
     data = convert_data_types(data, dtype_conversions)
     data = standardize_categorical_columns(data, categorical_columns)
 
     logger.info("Data cleaning pipeline executed successfully.")
     return data
 
-def preprocess_data(data: pd.DataFrame, irrelevant_columns: str, categorical_columns, numerical_columns, missing_value_strategies, date_column, dtype_conversions, filename: str, output_dir: str) -> pd.DataFrame:
+def preprocess_data(data: pd.DataFrame, irrelevant_columns: str, categorical_columns, numerical_columns, missing_value_strategies, date_column, dtype_conversions, output_dir: str = None) -> pd.DataFrame:
     """
     Loads, preprocesses, and saves cleaned data.
     """
     logger.info("Cleaning...")
 
-    cleaned_data = clean_data(data, irrelevant_columns, categorical_columns, missing_value_strategies, date_column, dtype_conversions)
-
+    cleaned_data = clean_data(data, irrelevant_columns, categorical_columns, numerical_columns, missing_value_strategies, date_column, dtype_conversions)
     preprocessed_data = cleaned_data.reset_index(drop=True)
 
-    logger.info("Saving preprocessed data...")
-    output_file = os.path.join(output_dir, filename)
-    save_data(data, output_file + ".csv")
-    save_data(data, output_file + ".json")
-    logger.info(f"Preprocessed data saved to {output_dir}")
+
+    if output_dir:
+        logger.info("Saving preprocessed data...")
+        output_file = os.path.join(output_dir, "data_preprocessed")
+        save_data(preprocessed_data, output_file + ".csv")
+        save_data(preprocessed_data, output_file + ".json")
+        logger.info(f"Preprocessed data saved to {output_dir}")
 
     return preprocessed_data
