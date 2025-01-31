@@ -176,12 +176,12 @@ def woe_binning(data, target_column, columns, max_bins=5, output_dir=None):
     
     return data
 
-def woe_rfms_pipeline(data, customer_column, recency_column, frequency_column, monetary_column, severity_column, target_column, label_column, columns, rfms_features, scaler=None, output_dir=None):
+def woe_rfms_pipeline(data, customer_column, recency_column, frequency_column, monetary_column, severity_column, target_column, customer_label, columns, rfms_features, scaler=None, output_dir=None):
     
     """Execute the RFMS and WoE pipeline dynamically."""
 
     # Calculate RFMS scores
-    rfms = calculate_rfms(data, customer_column, recency_column, frequency_column, monetary_column, severity_column)
+    rfms = calculate_rfms(data, customer_column, recency_column, frequency_column, monetary_column, severity_column, target_column)
 
     rfms_outliers = handle_outliers(rfms, rfms_features)
     plot_box(rfms_outliers, rfms_features)
@@ -190,18 +190,15 @@ def woe_rfms_pipeline(data, customer_column, recency_column, frequency_column, m
     rfms_normalized_outlier = handle_outliers(rfms_normalized, rfms_features)
     plot_box(rfms_normalized_outlier, rfms_features)
 
-    # merging
-    data_processed = data.merge(rfms_normalized_outlier, on=customer_column, how='left')
-
     # encoding with woe binning
-    data_woe_encoded = woe_binning(data_processed, target_column, columns, max_bins=5, output_dir=output_dir)
+    data_woe_encoded = woe_binning(rfms_normalized_outlier, target_column, columns, max_bins=5, output_dir=output_dir)
 
     # User Classification
     score_column = rfms_features[2]
-    data_rfms_classified = classify_users(data_woe_encoded, rfms_features, score_column=score_column, label_column=label_column)
+    data_rfms_classified = classify_users(data_woe_encoded, rfms_features, score_column=score_column, customer_label=customer_label)
     
     cluster_feature = rfms_features[0]
-    visualize_clusters(data_rfms_classified, cluster_feature, score_column, label_column, output_dir=output_dir)
+    visualize_clusters(data_rfms_classified, cluster_feature, score_column, customer_label, output_dir=output_dir)
     
     if output_dir:
         # Save the final transformed dataset

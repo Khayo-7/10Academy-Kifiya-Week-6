@@ -143,26 +143,41 @@ def normalize_standardize_numerical_features(data: pd.DataFrame, columns: list, 
     
     return data, scaler
 
-def calculate_rfms(data, customer_column, recency_column, frequency_column, monetary_column, severity_column):
+def calculate_rfms(data, customer_column, recency_column, frequency_column, monetary_column, severity_column, fraud_result_column):
     """Calculate RFMS scores dynamically."""
 
     logger.info("Calculating RFMS scores with recency.")
 
     # Group by customer and calculate RFMS scores
-    # reference_datetime = data[recency_column].max() or datetime.now()
-    # reference_datetime = reference_datetime.replace(tzinfo=None) if reference_datetime.tzinfo else reference_datetime
     reference_date = data[recency_column].max()
     data = validate_convert_date_column(data, recency_column)
-    data = validate_convert_date_column(data, frequency_column)
-    # data['Recency_Seconds'] = (reference_datetime - data[recency_column]).dt.total_seconds() # Calculate recency in seconds
+    data['Recency'] = (reference_date - data[recency_column]).dt.days
 
     rfms_data = data.groupby(customer_column).agg(
-        Recency=(recency_column, lambda x: (reference_date - x.max()).days),
-        # Recency=('Recency_Seconds': 'min'),
+        Recency=('Recency', 'min'),
         Frequency=(frequency_column, 'count'),
-        Monetary=(monetary_column, 'sum'),
-        Severity=(severity_column, 'mean')
+        # Monetary=(monetary_column, 'sum'),
+        Monetary=(monetary_column, lambda x: x.abs().sum()),
+        Severity=(severity_column, 'mean'),
+        Fraud_Rate=(fraud_result_column, lambda x: x.sum() / x.count())
     ).reset_index()
     
+     # Compute rolling fraud rate (only past transactions)
+    fraud_rates = data.groupby(customer_column).apply(
+        lambda group: group.assign(
+            Fraud_Rate=group[fraud_result_column].expanding().mean().shift(1)  # Shift to avoid leakage
+        )
+    )[['Fraud_Rate']].dropna()
+
+    # Merge fraud rates with RFMS
+    print("rfms_data", data.columns, rfms_data.columns)
+    rfms_data = rfms_data.merge(fraud_rates, on=customer_column, how='left').fillna(0)
+    print("rfms_data", data.columns, rfms_data.columns)
+
+    # merging
+    data_processed = data.merge(rfms_data, on=customer_column, how='left')
+    print("rfms_data", data.columns, rfms_data.columns)
+
     logger.debug(f"RFMS Metrics calculated with shape: {rfms_data.shape}")
-    return rfms_data
+    return data_processed
+

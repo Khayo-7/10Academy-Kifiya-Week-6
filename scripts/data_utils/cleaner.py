@@ -110,10 +110,9 @@ def convert_data_types(data: pd.DataFrame, conversions: Dict[str, str]) -> pd.Da
                 logger.error(f"Failed to convert {col} to {dtype}: {e}")
     return data
 
+
 def validate_convert_date_column(data, date_column, timezone="Africa/Addis_Ababa"):
-    """
-    Validate that the specified column exists and is a datetime.
-    """
+    """ Validate and convert a date column to the correct timezone. """
     if date_column not in data.columns:
         raise ValueError(f"{date_column} is not a valid column in data.")
     
@@ -142,8 +141,15 @@ def standardize_categorical_columns(data: pd.DataFrame, categorical_columns: Lis
 
 def handle_outliers(data, columns, lower_quantile=0.01, upper_quantile=0.99):
     for col in columns:
-        data[col] = data[col].clip(
-            lower=data[col].quantile(lower_quantile),
-            upper=data[col].quantile(upper_quantile)
-        )
+        if col in data.columns:
+            data[col] = data[col].clip(
+                lower=data[col].quantile(lower_quantile),
+                upper=data[col].quantile(upper_quantile)
+            )
+    return data
+
+    
+def handle_value_amount(data):
+    data = data.copy()
+    data['Value'] = data['Amount'].abs()
     return data

@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
@@ -20,6 +21,7 @@ def search_optimal_k(data, min_k=2, max_k=10):
     for k in range(min_k, max_k + 1):
         kmeans = KMeans(n_clusters=k, random_state=42)
         labels = kmeans.fit_predict(data)
+        print(np.unique(labels))
         score = silhouette_score(data, labels)
         scores.append(score)
         logger.debug(f"Silhouette score for k={k}: {score}")
@@ -46,18 +48,18 @@ def cluster_users(data, n_clusters=None):
     logger.info(f"Finished clustering RFMS data into {n_clusters} clusters.")
     return clusters
 
-def classify_users(data, columns, score_column, label_column='Customer_Label', cluster_col='Cluster', n_clusters=None, output_dir=None):
+def classify_users(data, columns, score_column, customer_label='Customer_Label', cluster_column='Cluster', n_clusters=None, output_dir=None):
     
     logger.info(f"Classifying customers.")
         
-    data[cluster_col] = cluster_users(data[columns], n_clusters=n_clusters)
+    data[cluster_column] = cluster_users(data[columns], n_clusters=n_clusters)
 
-    visualize_pca_clusters(data[columns], data[cluster_col], output_dir)
+    visualize_pca_clusters(data[columns], data[cluster_column], output_dir)
 
-    logger.info(f"Customer labels assigned to column: {label_column}.")
+    logger.info(f"Customer labels assigned to column: {customer_label}.")
 
-    good_cluster = data.groupby(cluster_col)[score_column].mean().idxmax()
-    data[label_column] = data[cluster_col].apply(lambda x: "Good" if x == good_cluster else "Bad")
+    good_cluster = data.groupby(cluster_column)[score_column].mean().idxmax()
+    data[customer_label] = data[cluster_column].apply(lambda x: "Good" if x == good_cluster else "Bad")
     
-    logger.info(f"Customer labels assigned to column: {label_column}.")
+    logger.info(f"Customer labels assigned to column: {customer_label}.")
     return data

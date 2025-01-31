@@ -22,11 +22,12 @@ def clean_data(data: pd.DataFrame, irrelevant_columns, categorical_columns, nume
 
     # Cleaning pipeline
     data = drop_irrelevant_columns(data, irrelevant_columns)
+    data = validate_convert_date_column(data, date_column)
+    data = convert_data_types(data, dtype_conversions)
+    data = handle_value_amount(data)
     data = handle_missing_values(data, missing_value_strategies)
     # data = drop_missing(data, columns)
     data = remove_duplicates(data)
-    data = validate_convert_date_column(data, date_column)
-    data = convert_data_types(data, dtype_conversions)
     data = standardize_categorical_columns(data, categorical_columns)
 
     logger.info("Data cleaning pipeline executed successfully.")
